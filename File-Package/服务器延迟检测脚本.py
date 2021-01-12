@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
+# 通过Python运行此脚本
+
 import os
 import time
 import commands
