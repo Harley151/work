@@ -1,0 +1,8 @@
+linux服务端：https://www.realvnc.com/download/file/vnc.files/VNC-Server-6.7.2-Linux-x86.rpm
+yum install xterm  -y
+systemctl stop firewalld;systemctl disable firewalld;setenforce 0
+rpm -ivh  VNC-Server-6.7.2-Linux-x86.rpm
+systemctl start realmd.service 
+
+Mac 客户端：https://www.realvnc.com/download/file/viewer.files/VNC-Viewer-6.20.817-MacOSX-x86_64.dmg
+windows 客户端：https://www.realvnc.com/download/file/viewer.files/VNC-Viewer-6.20.529-Windows.exe
