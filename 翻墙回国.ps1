@@ -1,2 +1,6 @@
 安装包：https://tlanyan.me/v2ray-clients-download/
 vmess://eyJwb3J0IjoiMzc0MTIiLCJwcyI6ImRlZmF1bHQiLCJ0bHMiOiJub25lIiwiaWQiOiJmNWE0MDRkMC1lZDc2LTQxY2QtYTMwMy03YTZlYzIxOTRmNTciLCJhaWQiOiI2NCIsInYiOiIyIiwiaG9zdCI6IiIsInR5cGUiOiJub25lIiwicGF0aCI6IiIsIm5ldCI6InRjcCIsImFkZCI6IjY4LjE2OC4xMzYuMTY5In0=
+
+
+
+机场网址：https://bit.ly/2LeMaLD
