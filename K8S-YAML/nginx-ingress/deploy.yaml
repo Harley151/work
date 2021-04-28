@@ -394,6 +394,7 @@ spec:
               memory: 90Mi
       nodeSelector:
         kubernetes.io/os: linux
+      hostNetwork: true
       serviceAccountName: ingress-nginx
       terminationGracePeriodSeconds: 300
       volumes:
