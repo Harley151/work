@@ -1,0 +1,183 @@
+#################################################################################################################
+# Define the settings for the rook-ceph cluster with common settings for a production cluster.
+# All nodes with available raw devices will be used for the Ceph cluster. At least three nodes are required
+# in this example. See the documentation for more details on storage settings available.
+
+# For example, to create the cluster:
+#   kubectl create -f crds.yaml -f common.yaml -f operator.yaml
+#   kubectl create -f cluster.yaml
+#################################################################################################################
+
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  cephVersion:
+
+    # 可以修改ceph镜像，加速部署时间
+    image: ceph/ceph:v15.2.5
+    # 是否允许不支持的ceph版本
+    allowUnsupported: false
+  # 指定rook数据在节点的保存路径
+  dataDirHostPath: /var/lib/rook
+  # 升级时如果检查失败是否继续rades
+  skipUpgradeChecks: false
+  # Whether or not continue if PGs are not clean during an upgrade
+  continueUpgradeAfterChecksEvenIfNotHealthy: false
+  # 从1.5开始，mon的数量必须是奇数
+  mon:
+    # 设置要启动的mons的数量。必须是奇数，一般建议是3。
+    count: 3
+    # 是否允许在单个节点上部署多个mon pod
+    allowMultiplePerNode: false
+
+  mgr:
+    modules:
+    # Several modules should not need to be included in this list. The "dashboard" and "monitoring" modules
+    # are already enabled by other settings in the cluster CR.
+    - name: pg_autoscaler
+      enabled: true
+
+  # 开启dashboard，禁用ssl，指定端口是7000，你可以默认https配置。我是为了ingress配置省事。
+  dashboard:
+    enabled: true
+    # 默认使用8443，改为7000
+    port: 7000
+    # serve the dashboard using SSL
+    ssl: true
+
+  # 开启prometheusRule
+  monitoring:
+    enabled: false
+  # 部署PrometheusRule的命名空间，默认此CR所在命名空间
+    rulesNamespace: rook-ceph
+    # 开启网络为host模式，解决无法使用cephfs pvc的bug
+  network:
+    provider: host
+
+  # 开启crash collector，每个运行了Ceph守护进程的节点上创建crash collector pod
+  crashCollector:
+    disable: false
+  # automate [data cleanup process](https://github.com/rook/rook/blob/master/Documentation/ceph-teardown.md#delete-the-data-on-hosts) in cluster destruction.
+  cleanupPolicy:
+
+    confirmation: ""
+    # sanitizeDisks represents settings for sanitizing OSD disks on cluster deletion
+    sanitizeDisks:
+      # method indicates if the entire disk should be sanitized or simply ceph's metadata
+      # in both case, re-install is possible
+      # possible choices are 'complete' or 'quick' (default)
+      method: quick
+      # dataSource indicate where to get random bytes from to write on the disk
+      # possible choices are 'zero' (default) or 'random'
+      # using random sources will consume entropy from the system and will take much more time then the zero source
+      dataSource: zero
+      # iteration overwrite N times instead of the default (1)
+      # takes an integer value
+      iteration: 1
+    # allowUninstallWithVolumes defines how the uninstall should be performed
+    # If set to true, cephCluster deletion does not wait for the PVs to be deleted.
+    allowUninstallWithVolumes: false
+
+
+  # 设置node亲缘性，指定节点安装对应组件
+    placement:
+      mon:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: ceph-mon
+                operator: In
+                values:
+                - enabled
+
+      osd:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: ceph-osd
+                operator: In
+                values:
+                - enabled
+
+      mgr:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: ceph-mgr
+                operator: In
+                values:
+                - enabled 
+
+  annotations:
+  labels:
+  resources:
+
+  removeOSDsIfOutAndSafeToRemove: false
+#  priorityClassNames:
+#    all: rook-ceph-default-priority-class
+#    mon: rook-ceph-mon-priority-class
+#    osd: rook-ceph-osd-priority-class
+#    mgr: rook-ceph-mgr-priority-class
+  storage: # cluster level storage configuration and selection
+    useAllNodes: false     #关闭使用所有Node
+    useAllDevices: false   #关闭使用所有设备
+
+    nodes:
+    - name: "172.21.40.242"  #指定存储节点主机
+      devices:
+      - name: "vdb"    #指定磁盘为vdb
+    - name: "172.21.40.243"
+      devices:
+      - name: "vdb"
+    - name: "172.21.40.244"
+      devices:
+      - name: "vdb"
+
+
+
+
+  disruptionManagement:
+    # If true, the operator will create and manage PodDisruptionBudgets for OSD, Mon, RGW, and MDS daemons. OSD PDBs are managed dynamically
+    # via the strategy outlined in the [design](https://github.com/rook/rook/blob/master/design/ceph/ceph-managed-disruptionbudgets.md). The operator will
+    # block eviction of OSDs by default and unblock them safely when drains are detected.
+    managePodBudgets: false
+    # A duration in minutes that determines how long an entire failureDomain like `region/zone/host` will be held in `noout` (in addition to the
+    # default DOWN/OUT interval) when it is draining. This is only relevant when  `managePodBudgets` is `true`. The default value is `30` minutes.
+    osdMaintenanceTimeout: 30
+    # A duration in minutes that the operator will wait for the placement groups to become healthy (active+clean) after a drain was completed and OSDs came back up.
+    # Operator will continue with the next drain if the timeout exceeds. It only works if `managePodBudgets` is `true`.
+    # No values or 0 means that the operator will wait until the placement groups are healthy before unblocking the next drain.
+    pgHealthCheckTimeout: 0
+    # If true, the operator will create and manage MachineDisruptionBudgets to ensure OSDs are only fenced when the cluster is healthy.
+    # Only available on OpenShift.
+    manageMachineDisruptionBudgets: false
+    # Namespace in which to watch for the MachineDisruptionBudgets.
+    machineDisruptionBudgetNamespace: openshift-machine-api
+
+  # healthChecks
+  # Valid values for daemons are 'mon', 'osd', 'status'
+  healthCheck:
+    daemonHealth:
+      mon:
+        disabled: false
+        interval: 45s
+      osd:
+        disabled: false
+        interval: 60s
+      status:
+        disabled: false
+        interval: 60s
+    # Change pod liveness probe, it works for all mon,mgr,osd daemons
+    livenessProbe:
+      mon:
+        disabled: false
+      mgr:
+        disabled: false
+      osd:
+        disabled: false
