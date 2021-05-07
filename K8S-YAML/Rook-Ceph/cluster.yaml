@@ -1,0 +1,118 @@
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  cephVersion:
+    image: ceph/ceph:v15.2.5
+    allowUnsupported: false
+  dataDirHostPath: /data/rook
+  skipUpgradeChecks: false
+  continueUpgradeAfterChecksEvenIfNotHealthy: false
+  mon:
+    count: 3
+    allowMultiplePerNode: false
+  mgr:
+    modules:
+    - name: pg_autoscaler
+      enabled: true
+  # 开启dashboard，禁用ssl，指定端口是7000，你可以默认https配置。我是为了ingress配置省事
+  dashboard:
+    enabled: true
+    port: 7000
+    ssl: false
+  # 开启prometheusRule
+  monitoring:
+    enabled: true
+    rulesNamespace: rook-ceph
+  # 开启网络为host模式，解决无法使用cephfs pvc的bug
+  network:
+    provider: host
+  crashCollector:
+    disable: false
+
+  # 设置node亲缘性，指定节点安装对应组件
+  placement:
+    mon:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: ceph-mon
+              operator: In
+              values:
+              - mon-enabled
+
+    osd:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: ceph-osd
+              operator: In
+              values:
+              - osd-enabled
+
+    mgr:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: ceph-mgr
+              operator: In
+              values:
+              - mgr-enabled
+
+
+  cleanupPolicy:
+    confirmation: ""
+    sanitizeDisks:
+      method: quick
+      dataSource: zero
+      iteration: 1
+    allowUninstallWithVolumes: false
+  annotations:
+  labels:
+  resources:
+  removeOSDsIfOutAndSafeToRemove: false
+
+  # 存储的设置，默认都是true，意思是会把集群所有node的设备清空初始化。
+  storage: # cluster level storage configuration and selection
+    useAllNodes: true
+    useAllDevices: true
+    nodes:
+    - name: "node1"  #指定存储节点主机
+      devices:
+      - name: "vdb"    #指定磁盘为vdb
+    - name: "node2"
+      devices:
+      - name: "vdb"
+    - name: "node3"
+      devices:
+      - name: "vdb"
+
+  disruptionManagement:
+    managePodBudgets: false
+    osdMaintenanceTimeout: 30
+    pgHealthCheckTimeout: 0
+    manageMachineDisruptionBudgets: false
+    machineDisruptionBudgetNamespace: openshift-machine-api
+  healthCheck:
+    daemonHealth:
+      mon:
+        disabled: false
+        interval: 45s
+      osd:
+        disabled: false
+        interval: 60s
+      status:
+        disabled: false
+        interval: 60s
+    livenessProbe:
+      mon:
+        disabled: false
+      mgr:
+        disabled: false
+      osd:
+        disabled: false
