@@ -20,8 +20,7 @@ spec:
   # 开启dashboard，禁用ssl，指定端口是7000，你可以默认https配置。我是为了ingress配置省事
   dashboard:
     enabled: true
-    port: 7000
-    ssl: false
+    ssl: true
   # 开启prometheusRule
   monitoring:
     enabled: true
