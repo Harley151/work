@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grafana
+spec:
+  nfs:
+    path: /data/volumes/v2
+    server: 172.21.40.245
+  storageClassName: grafana
+  accessModes: ["ReadWriteMany","ReadWriteOnce"]
+  capacity:
+    storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana
+  namespace: kube-ops
+spec:
+  storageClassName: grafana       # 需要绑定一个名称为grafana的pv
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

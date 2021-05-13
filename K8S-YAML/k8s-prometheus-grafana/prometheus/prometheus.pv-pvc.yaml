@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: prometheus
+spec:
+  nfs:
+    path: /data/volumes/v1
+    server: 172.21.40.245
+  storageClassName: prometheus
+  accessModes: ["ReadWriteMany","ReadWriteOnce"]
+  capacity:
+    storage: 15Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus
+  namespace: kube-ops
+spec:
+  storageClassName: prometheus        # 指定了pv名称进行绑定，请求10G的存储空间
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
